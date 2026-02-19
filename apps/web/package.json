@@ -1,0 +1,10 @@
+{
+  "name": "@civicguard/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"Implement web runtime (Vite/Next.js) next\"",
+    "build": "echo \"Build pending\""
+  }
+}
