@@ -1,0 +1,15 @@
+{
+  "name": "civicguard",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI-assisted documentation workflow for social workers",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "echo \"Wire up app-specific dev servers next\"",
+    "build": "echo \"Build scripts pending\"",
+    "test": "echo \"Tests pending\""
+  }
+}
