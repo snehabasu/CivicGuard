@@ -8,8 +8,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "echo \"Wire up app-specific dev servers next\"",
-    "build": "echo \"Build scripts pending\"",
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web",
+    "type-check": "npm run type-check --workspace=packages/shared && npm run type-check --workspace=apps/web",
     "test": "echo \"Tests pending\""
   }
 }
