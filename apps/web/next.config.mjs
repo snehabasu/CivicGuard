@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // ANTHROPIC_API_KEY has no NEXT_PUBLIC_ prefix so it stays server-side only.
   // No additional configuration needed to enforce this.
 };

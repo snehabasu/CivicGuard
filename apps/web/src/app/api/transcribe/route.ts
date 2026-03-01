@@ -3,9 +3,8 @@ import type { TranscribeResponse } from "@civicguard/shared";
 import { randomUUID } from "crypto";
 import OpenAI from "openai";
 
-const openai = new OpenAI(); // reads OPENAI_API_KEY from process.env
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
+  const openai = new OpenAI(); // reads OPENAI_API_KEY at request time, not build time
   let formData: FormData;
   try {
     formData = await req.formData();
