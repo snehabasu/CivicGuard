@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { TranscribeResponse } from "@civicguard/shared";
 import { randomUUID } from "crypto";
+import OpenAI from "openai";
 
-/**
- * POST /api/transcribe
- *
- * MVP: Returns a mock transcript. The audio blob is accepted to demonstrate
- * the real upload flow, but transcription is simulated.
- *
- * Production swap-in: replace the DEMO_TRANSCRIPT constant with a call to
- * OpenAI Whisper or Amazon Transcribe Medical using the uploaded audio blob.
- */
+const openai = new OpenAI(); // reads OPENAI_API_KEY from process.env
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   let formData: FormData;
   try {
@@ -20,30 +14,36 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const audioFile = formData.get("audio") as File | null;
+  if (!audioFile || audioFile.size === 0) {
+    return NextResponse.json({ error: "No audio file received" }, { status: 400 });
+  }
+
   const visitId =
     (formData.get("visitId") as string | null) ?? `visit_${randomUUID()}`;
 
-  // Rough duration estimate from file size (audio/webm ~16KB/s at low bitrate)
-  const durationSeconds = audioFile
-    ? Math.max(1, Math.round(audioFile.size / 16000))
-    : 0;
+  const durationSeconds = Math.max(1, Math.round(audioFile.size / 16000));
 
-  // Demo transcript — replace with real STT in production
-  const DEMO_TRANSCRIPT =
-    "I just finished meeting with the family. The caregiver was feeling overwhelmed and " +
-    "stressed about the bills piling up and mentioned the kids have been missing school. " +
-    "There's no immediate safety concern but she said she panicked last week when the " +
-    "utilities were shut off. She has some support from her sister but feels isolated " +
-    "from other services. No history of substance use disclosed. Issues have been ongoing " +
-    "for about six months since the job loss. I provided her with the emergency rental " +
-    "assistance hotline and we are going to check in again within 72 hours.";
+  let transcript: string;
+  try {
+    const result = await openai.audio.transcriptions.create({
+      file: audioFile,
+      model: "whisper-1",
+      language: "en",
+    });
+    transcript = result.text.trim();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Transcription failed";
+    console.error("[/api/transcribe] Whisper error:", message);
+    return NextResponse.json({ error: "Transcription failed. Please try again." }, { status: 500 });
+  }
 
-  const body: TranscribeResponse = {
-    visitId,
-    transcript: DEMO_TRANSCRIPT,
-    durationSeconds,
-    isMock: true,
-  };
+  if (!transcript) {
+    return NextResponse.json(
+      { error: "No speech detected in the recording. Please try again." },
+      { status: 422 }
+    );
+  }
 
+  const body: TranscribeResponse = { visitId, transcript, durationSeconds };
   return NextResponse.json(body);
 }
