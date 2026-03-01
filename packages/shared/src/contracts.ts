@@ -99,7 +99,6 @@ export type TranscribeResponse = {
   visitId: string;
   transcript: string;
   durationSeconds: number;
-  isMock: true;
 };
 
 /** Shape of POST /api/process request body */
