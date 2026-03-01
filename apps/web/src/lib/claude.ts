@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { FullCaseNote, ProcessRequest } from "@civicguard/shared";
+import { HIGH_STRESS_KEYWORDS } from "@civicguard/shared";
 import { validateFullCaseNote } from "./processResult";
 
 // Instantiated once. Reads ANTHROPIC_API_KEY from process.env (server-side only).
@@ -74,6 +75,7 @@ Flag keywords or phrases indicating crisis, risk, or high clinical concern.
 Severity: high = imminent safety risk; medium = significant concern; low = monitoring needed.
 Include a brief context quote or paraphrase from the transcript.
 Return an empty array if no stress indicators are present.
+Pay particular attention to (but do not limit yourself to) these terms: ${HIGH_STRESS_KEYWORDS.join(", ")}.
 
 BOUNDARIES GUIDANCE:
 - legalStatusOmitted: Set to true if the transcript mentioned legal/immigration status that you intentionally omitted.
