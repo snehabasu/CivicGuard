@@ -13,13 +13,10 @@
     "type-check": "npm run type-check --workspace=packages/shared && npm run type-check --workspace=apps/web",
     "test": "echo \"Tests pending\""
   },
-  "dependencies": {
-    "next": "16.1.6",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
-  },
   "devDependencies": {
-    "eslint": "^9.39.3",
-    "eslint-config-next": "^16.1.6"
+  },
+  "overrides": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }

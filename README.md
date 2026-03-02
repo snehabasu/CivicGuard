@@ -12,17 +12,18 @@ All AI output is a draft. The clinician reviews, edits, and approves before anyt
 
 ## Setup
 
-**Prerequisites:** Node.js 18+, an Anthropic API key.
+**Prerequisites:** Node.js 18+, an Anthropic API key, an OpenAI API key.
 
 ```
 npm install
 cp apps/web/.env.local.example apps/web/.env.local
 ```
 
-Open `apps/web/.env.local` and set your API key:
+Open `apps/web/.env.local` and fill in both keys:
 
 ```
 ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
 ```
 
 ## Running locally
@@ -39,18 +40,18 @@ The app runs as a three-page flow: record → review → export.
 
 **Step 1 — Record**
 
-Open `http://localhost:3000`. Click **Start Recording** and allow microphone access when prompted. Speak a brief post-visit reflection, then click **Stop Recording**.
+Open `http://localhost:3000`. Click **Start Recording** and allow microphone access when prompted. Speak a brief post-visit reflection as if you just finished a visit — describe the presenting concerns, any safety observations, what interventions you provided, and your follow-up plan. Then click **Stop Recording**.
 
-In MVP, the audio is uploaded but transcription is mocked — a demo transcript is used regardless of what you say. This lets you test the full flow without a real STT provider. The demo transcript describes a caregiver experiencing financial stress with no immediate safety concern.
+The audio is transcribed by OpenAI Whisper before being sent to Claude, so the documentation will reflect what you actually said.
 
 **Step 2 — Review**
 
 After a few seconds, you are routed to `/review`. Check that:
 
 - The **DRAFT** banner is visible at the top
-- The narrative summary, SOAP note, and all six psychosocial assessment fields are populated
+- The narrative summary, SOAP note, and all six psychosocial assessment fields are populated based on your recording
 - Fields with low transcript coverage show `confidence: insufficient_data`
-- Any stress keywords (overwhelmed, panicked, etc.) appear in the risk flags section
+- Any stress or risk keywords appear in the risk flags section
 - The documentation boundaries section notes whether legal status was omitted
 
 Edit any field directly in the textarea. When you are satisfied, enter your name in the approval field — this enables the **Approve** button.
@@ -63,9 +64,9 @@ Risk flags are shown separately with a note not to paste them directly into Epic
 
 ## Testing specific behaviors
 
-**Legal status leak detection** — Edit the demo transcript in `apps/web/src/app/api/transcribe/route.ts` to include a word like "probation" or "warrant". The `/api/process` route will return a 500 and the UI will show an error. Restore the original transcript when done.
+**Legal status leak detection** — Include a word like "probation" or "warrant" in your spoken reflection. The `/api/process` route will detect the leak server-side and return an error — the documentation will not be generated.
 
-**Insufficient data handling** — Replace the demo transcript with something sparse like `"Client seemed okay."`. The psychosocial fields should come back as `confidence: insufficient_data` with a placeholder value.
+**Insufficient data handling** — Record something sparse like "Client seemed okay, nothing specific to report." The psychosocial fields should come back as `confidence: insufficient_data` with a placeholder value rather than hallucinated content.
 
 **Mobile recording** — Open `http://localhost:3000` on an iOS or Android device (same local network, or use a tunnel like ngrok). Recording should work using the device microphone. iOS Safari uses `audio/mp4`; Android Chrome uses `audio/webm`.
 

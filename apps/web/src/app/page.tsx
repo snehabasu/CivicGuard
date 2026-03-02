@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { Sidebar } from "@/components/Sidebar";
 import { NoteCard } from "@/components/NoteCard";
-import { mockNoteGroups, mockFullCaseNote } from "@/lib/mockNotes";
+import { mockNoteGroups } from "@/lib/mockNotes";
 import { SearchIcon, MenuIcon, XIcon } from "@/components/icons";
 import type { FullCaseNote } from "@civicguard/shared";
 
@@ -25,17 +25,24 @@ export default function HomePage() {
 
   const handleTranscriptReady = async (vId: string, transcript: string) => {
     setIsProcessing(true);
-
-    const note: FullCaseNote = {
-      ...mockFullCaseNote,
-      visitId: vId,
-      patientName: "Lisa Smith",
-      transcript,
-      generatedAtIso: new Date().toISOString(),
-    };
-
-    sessionStorage.setItem("pendingCaseNote", JSON.stringify(note));
-    router.push("/review");
+    try {
+      const res = await fetch("/api/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visitId: vId, transcript }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Processing failed" }));
+        throw new Error(err.error ?? "Processing failed");
+      }
+      const note: FullCaseNote = await res.json();
+      sessionStorage.setItem("pendingCaseNote", JSON.stringify(note));
+      router.push("/review");
+    } catch (err) {
+      console.error("[HomePage] process error:", err);
+      alert(err instanceof Error ? err.message : "Failed to generate case note. Please try again.");
+      setIsProcessing(false);
+    }
   };
 
   return (
