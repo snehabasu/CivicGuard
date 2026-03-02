@@ -29,6 +29,7 @@ export default function HomePage() {
     const note: FullCaseNote = {
       ...mockFullCaseNote,
       visitId: vId,
+      patientName: "Lisa Smith",
       transcript,
       generatedAtIso: new Date().toISOString(),
     };

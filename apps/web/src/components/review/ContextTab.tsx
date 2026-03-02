@@ -6,13 +6,17 @@ type Props = {
 
 export function ContextTab({ transcript }: Props) {
   return (
-    <section>
-      <h2 className="text-xs font-semibold text-teal-dark/40 uppercase tracking-wider mb-3">
-        Source Transcript (read-only)
-      </h2>
-      <blockquote className="bg-surface-card border border-surface-hover rounded-lg px-4 py-3 m-0 italic text-sm text-teal-dark leading-relaxed">
-        {transcript}
-      </blockquote>
-    </section>
+    <div className="bg-white rounded-xl px-6 py-5">
+      <h3 className="text-sm font-semibold text-teal-dark mb-3">Transcript</h3>
+      {transcript.trim() ? (
+        <p className="text-sm text-teal-dark leading-relaxed whitespace-pre-wrap m-0">
+          {transcript}
+        </p>
+      ) : (
+        <p className="text-sm text-teal-dark/40 italic m-0">
+          No transcript available for this visit.
+        </p>
+      )}
+    </div>
   );
 }

@@ -67,6 +67,7 @@ export type DocumentationBoundary = {
  */
 export type FullCaseNote = {
   visitId: string;
+  patientName: string;
   isDraft: true;
   draftLabel: "DRAFT — pending clinician review";
   generatedAtIso: string;
@@ -84,9 +85,11 @@ export type FullCaseNote = {
  */
 export type ApprovedCaseNote = {
   visitId: string;
+  patientName: string;
   isDraft: false;
   approvedAtIso: string;
   approvedBy: string;
+  transcript: string;
   narrativeSummary: string;
   soap: SoapNote;
   psychosocial: PsychosocialAssessment;

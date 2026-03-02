@@ -5,15 +5,15 @@ import { useRouter } from "next/navigation";
 import type { FullCaseNote, ApprovedCaseNote } from "@civicguard/shared";
 import { ReviewSidebar } from "@/components/ReviewSidebar";
 import { ContextTab } from "@/components/review/ContextTab";
-import { NotesTab } from "@/components/review/NotesTab";
-import { ChevronLeftIcon } from "@/components/icons";
+import { NoteView } from "@/components/review/NoteView";
+import { ChevronLeftIcon, MenuIcon } from "@/components/icons";
 
-type Tab = "context" | "notes";
+type Tab = "transcript" | "note";
 
 export default function ReviewPage() {
   const [note, setNote] = useState<FullCaseNote | null>(null);
   const [approverName, setApproverName] = useState("");
-  const [activeTab, setActiveTab] = useState<Tab>("notes");
+  const [activeTab, setActiveTab] = useState<Tab>("note");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const router = useRouter();
@@ -35,9 +35,11 @@ export default function ReviewPage() {
     if (!note || !approverName.trim()) return;
     const approved: ApprovedCaseNote = {
       visitId: note.visitId,
+      patientName: note.patientName,
       isDraft: false,
       approvedAtIso: new Date().toISOString(),
       approvedBy: approverName.trim(),
+      transcript: note.transcript,
       narrativeSummary: note.narrativeSummary,
       soap: note.soap,
       psychosocial: note.psychosocial,
@@ -58,6 +60,10 @@ export default function ReviewPage() {
     );
   }
 
+  const generatedDate = note.generatedAtIso
+    ? new Date(note.generatedAtIso)
+    : null;
+
   return (
     <div className="flex min-h-screen w-full overflow-x-hidden">
       {/* Sidebar */}
@@ -73,10 +79,18 @@ export default function ReviewPage() {
         {/* Header */}
         <header className="sticky top-0 z-30 bg-surface border-b border-surface-hover">
           <div className="flex items-center gap-3 px-4 h-16">
-            {/* Mobile: back button */}
+            {/* Mobile: hamburger for sidebar */}
+            {/* <button
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-lg hover:bg-surface-hover text-teal-dark/60"
+            >
+              <MenuIcon size={20} />
+            </button> */}
+
+            {/* Desktop: back button */}
             <button
               onClick={() => router.push("/")}
-              className="lg:hidden p-2 rounded-lg hover:bg-surface-hover text-teal-dark/60"
+              className="lg:flex p-2 rounded-lg hover:bg-surface-hover text-teal-dark/60"
             >
               <ChevronLeftIcon size={20} />
             </button>
@@ -87,28 +101,62 @@ export default function ReviewPage() {
             </div>
 
             <div className="flex-1" />
+
+            {/* Date/time metadata */}
+            {generatedDate && (
+              <span className="text-xs text-teal-dark/40 hidden sm:block">
+                {generatedDate.toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}{" "}
+                {generatedDate.toLocaleTimeString(undefined, {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </span>
+            )}
           </div>
         </header>
 
-        {/* Draft banner */}
-        <div className="px-4 pt-4">
-          <div className="max-w-2xl mx-auto bg-amber-50 border border-amber-300 rounded-lg px-4 py-3">
-            <p className="text-sm font-bold text-amber-800">
-              {note.draftLabel}
-            </p>
-            <p className="text-xs text-amber-700 mt-1">
-              Review each section carefully. Edit any inaccurate or missing
-              information before approving. Do not submit to Epic until you have
-              reviewed and approved this draft.
+        {/* Patient name + time */}
+        <div className="px-4 pt-5">
+          <div className="max-w-3xl mx-auto text-center">
+            <h1 className="text-4xl font-bold text-teal-dark">
+              {note.patientName || "Unknown Client"}
+            </h1>
+            {generatedDate && (
+              <p className="text-xs text-teal-dark/50 mt-1">
+                {generatedDate.toLocaleDateString(undefined, {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}{" "}
+                at{" "}
+                {generatedDate.toLocaleTimeString(undefined, {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Draft banner — thin strip */}
+        <div className="px-4 pt-3">
+          <div className="max-w-3xl mx-auto bg-amber-50/60 rounded-lg px-4 py-2">
+            <p className="text-xs font-semibold text-amber-700">
+              {note.draftLabel} — Review and edit before approving.
             </p>
           </div>
         </div>
 
         {/* Tab bar */}
-        <div className="px-4 pt-4">
-          <div className="max-w-2xl mx-auto">
+        <div className="px-4 pt-3">
+          <div className="max-w-3xl mx-auto">
             <div className="bg-surface-card rounded-lg p-1 inline-flex">
-              {(["context", "notes"] as const).map((tab) => (
+              {(["transcript", "note"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -118,7 +166,7 @@ export default function ReviewPage() {
                       : "text-teal-dark/50 hover:text-teal-dark/70"
                   }`}
                 >
-                  {tab === "context" ? "Context" : "Notes"}
+                  {tab === "transcript" ? "Transcript" : "Note"}
                 </button>
               ))}
             </div>
@@ -127,13 +175,12 @@ export default function ReviewPage() {
 
         {/* Main scrollable area */}
         <main className="flex-1 overflow-y-auto px-4 py-6 pb-12">
-          <div className="max-w-2xl mx-auto">
-            {activeTab === "context" ? (
+          <div className="max-w-3xl mx-auto">
+            {activeTab === "transcript" ? (
               <ContextTab transcript={note.transcript} />
             ) : (
-              <NotesTab
+              <NoteView
                 note={note}
-                onNoteChange={setNote}
                 approverName={approverName}
                 onApproverNameChange={setApproverName}
                 onApprove={handleApprove}

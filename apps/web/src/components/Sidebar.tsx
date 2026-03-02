@@ -28,7 +28,7 @@ export function Sidebar({ open, onClose }: Props) {
       <aside
         className={`
           fixed top-0 left-0 h-full w-[260px] bg-white border-r border-surface-hover z-50
-          flex flex-col
+          flex flex-col flex-shrink-0 lg:h-screen lg:sticky
           transition-transform duration-200 ease-in-out
           lg:translate-x-0 lg:static lg:z-auto
           ${open ? "translate-x-0" : "-translate-x-full"}

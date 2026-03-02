@@ -4,7 +4,7 @@ import type { FullCaseNote } from "@civicguard/shared";
  * Hardcoded mock FullCaseNote for UI development / demo.
  * `visitId` and `transcript` are placeholders — overwritten at runtime.
  */
-export const mockFullCaseNote: Omit<FullCaseNote, "visitId" | "transcript"> = {
+export const mockFullCaseNote: Omit<FullCaseNote, "visitId" | "patientName" | "transcript"> = {
   isDraft: true,
   draftLabel: "DRAFT — pending clinician review",
   generatedAtIso: new Date().toISOString(),
