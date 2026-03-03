@@ -6,7 +6,7 @@ import { RecordingSheet } from "./RecordingSheet";
 
 type Props = {
   visitId: string;
-  onTranscriptReady: (visitId: string, transcript: string) => void;
+  onTranscriptReady: (visitId: string, transcript: string, patientName: string) => void;
   isProcessing?: boolean;
   processingError?: string | null;
   onDismissError?: () => void;

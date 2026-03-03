@@ -1,35 +1,60 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import type { FullCaseNote, ApprovedCaseNote } from "@civicguard/shared";
+import { getNoteById, saveNote } from "@/lib/noteStorage";
 import { ReviewSidebar } from "@/components/ReviewSidebar";
 import { ContextTab } from "@/components/review/ContextTab";
 import { NoteView } from "@/components/review/NoteView";
-import { ChevronLeftIcon, MenuIcon } from "@/components/icons";
+import { ChevronLeftIcon } from "@/components/icons";
 
 type Tab = "transcript" | "note";
 
-export default function ReviewPage() {
-  const [note, setNote] = useState<FullCaseNote | null>(null);
+function ReviewContent() {
+  const [note, setNote] = useState<FullCaseNote | ApprovedCaseNote | null>(null);
   const [approverName, setApproverName] = useState("");
   const [activeTab, setActiveTab] = useState<Tab>("note");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const raw = sessionStorage.getItem("pendingCaseNote");
-    if (!raw) {
-      router.replace("/");
-      return;
+    const visitId = searchParams.get("visitId");
+
+    // Try localStorage first (by visitId)
+    if (visitId) {
+      const stored = getNoteById(visitId);
+      if (stored) {
+        setNote(stored as FullCaseNote | ApprovedCaseNote);
+        return;
+      }
     }
-    try {
-      setNote(JSON.parse(raw) as FullCaseNote);
-    } catch {
-      router.replace("/");
+
+    // Fall back to sessionStorage (backward compat for new recordings)
+    const rawDraft = sessionStorage.getItem("pendingCaseNote");
+    if (rawDraft) {
+      try {
+        setNote(JSON.parse(rawDraft) as FullCaseNote);
+        return;
+      } catch {
+        // fall through
+      }
     }
-  }, [router]);
+
+    const rawApproved = sessionStorage.getItem("approvedCaseNote");
+    if (rawApproved) {
+      try {
+        setNote(JSON.parse(rawApproved) as ApprovedCaseNote);
+        return;
+      } catch {
+        // fall through
+      }
+    }
+
+    router.replace("/");
+  }, [router, searchParams]);
 
   const handleApprove = () => {
     if (!note || !approverName.trim()) return;
@@ -47,9 +72,13 @@ export default function ReviewPage() {
       boundaries: note.boundaries,
     };
 
+    // Save approved note to localStorage (overwrites the draft)
+    saveNote(approved);
+    // Clean up sessionStorage
     sessionStorage.removeItem("pendingCaseNote");
     sessionStorage.setItem("approvedCaseNote", JSON.stringify(approved));
-    router.push("/export");
+    // Stay on the same page — switch to approved state
+    setNote(approved);
   };
 
   if (!note) {
@@ -60,12 +89,15 @@ export default function ReviewPage() {
     );
   }
 
-  const generatedDate = note.generatedAtIso
-    ? new Date(note.generatedAtIso)
-    : null;
+  const isDraft = note.isDraft;
+  const displayDate = isDraft
+    ? (note as FullCaseNote).generatedAtIso
+      ? new Date((note as FullCaseNote).generatedAtIso)
+      : null
+    : new Date((note as ApprovedCaseNote).approvedAtIso);
 
   return (
-    <div className="flex min-h-screen w-full overflow-x-hidden">
+    <div className="min-h-screen w-full">
       {/* Sidebar */}
       <ReviewSidebar
         open={sidebarOpen}
@@ -75,19 +107,10 @@ export default function ReviewPage() {
       />
 
       {/* Main content */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
+      <div className="min-w-0 flex flex-col min-h-screen lg:ml-[260px]">
         {/* Header */}
         <header className="sticky top-0 z-30 bg-surface border-b border-surface-hover">
           <div className="flex items-center gap-3 px-4 h-16">
-            {/* Mobile: hamburger for sidebar */}
-            {/* <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg hover:bg-surface-hover text-teal-dark/60"
-            >
-              <MenuIcon size={20} />
-            </button> */}
-
-            {/* Desktop: back button */}
             <button
               onClick={() => router.push("/")}
               className="lg:flex p-2 rounded-lg hover:bg-surface-hover text-teal-dark/60"
@@ -103,14 +126,15 @@ export default function ReviewPage() {
             <div className="flex-1" />
 
             {/* Date/time metadata */}
-            {generatedDate && (
+            {displayDate && (
               <span className="text-xs text-teal-dark/40 hidden sm:block">
-                {generatedDate.toLocaleDateString(undefined, {
+                {!isDraft && "Approved "}
+                {displayDate.toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
                   year: "numeric",
                 })}{" "}
-                {generatedDate.toLocaleTimeString(undefined, {
+                {displayDate.toLocaleTimeString(undefined, {
                   hour: "numeric",
                   minute: "2-digit",
                 })}
@@ -125,16 +149,16 @@ export default function ReviewPage() {
             <h1 className="text-4xl font-bold text-teal-dark">
               {note.patientName || "Unknown Client"}
             </h1>
-            {generatedDate && (
+            {displayDate && (
               <p className="text-xs text-teal-dark/50 mt-1">
-                {generatedDate.toLocaleDateString(undefined, {
+                {displayDate.toLocaleDateString(undefined, {
                   weekday: "long",
                   month: "long",
                   day: "numeric",
                   year: "numeric",
                 })}{" "}
                 at{" "}
-                {generatedDate.toLocaleTimeString(undefined, {
+                {displayDate.toLocaleTimeString(undefined, {
                   hour: "numeric",
                   minute: "2-digit",
                 })}
@@ -143,12 +167,22 @@ export default function ReviewPage() {
           </div>
         </div>
 
-        {/* Draft banner — thin strip */}
+        {/* Status banner */}
         <div className="px-4 pt-3">
-          <div className="max-w-3xl mx-auto bg-amber-50/60 rounded-lg px-4 py-2">
-            <p className="text-xs font-semibold text-amber-700">
-              {note.draftLabel} — Review and edit before approving.
-            </p>
+          <div className="max-w-3xl mx-auto">
+            {isDraft ? (
+              <div className="bg-amber-50/60 rounded-lg px-4 py-2">
+                <p className="text-xs font-semibold text-amber-700">
+                  {(note as FullCaseNote).draftLabel} — Review and edit before approving.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-green-50/60 rounded-lg px-4 py-2">
+                <p className="text-xs font-semibold text-green-700">
+                  Approved by {(note as ApprovedCaseNote).approvedBy}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -178,17 +212,50 @@ export default function ReviewPage() {
           <div className="max-w-3xl mx-auto">
             {activeTab === "transcript" ? (
               <ContextTab transcript={note.transcript} />
-            ) : (
+            ) : isDraft ? (
               <NoteView
                 note={note}
                 approverName={approverName}
                 onApproverNameChange={setApproverName}
                 onApprove={handleApprove}
               />
+            ) : (
+              <NoteView note={note} readOnly />
             )}
           </div>
         </main>
+
+        {/* Start New Visit — only shown after approval */}
+        {!isDraft && (
+          <div className="px-4 pb-8">
+            <div className="max-w-3xl mx-auto">
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem("approvedCaseNote");
+                  router.push("/");
+                }}
+                className="w-full py-3 rounded-xl text-sm font-bold text-teal-dark/60 bg-surface-card hover:bg-surface-hover transition-colors"
+              >
+                Start New Visit
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+export default function ReviewPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <p className="text-sm text-teal-dark/40">Loading...</p>
+        </div>
+      }
+    >
+      <ReviewContent />
+    </Suspense>
   );
 }

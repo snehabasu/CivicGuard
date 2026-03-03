@@ -108,6 +108,7 @@ export type TranscribeResponse = {
 export type ProcessRequest = {
   visitId: string;
   transcript: string;
+  patientName?: string;
 };
 
 /** Shape returned by POST /api/process */

@@ -27,15 +27,14 @@ export function Sidebar({ open, onClose }: Props) {
 
       <aside
         className={`
-          fixed top-0 left-0 h-full w-[260px] bg-white border-r border-surface-hover z-50
-          flex flex-col flex-shrink-0 lg:h-screen lg:sticky
+          fixed top-0 left-0 h-dvh w-[260px] bg-white border-r border-surface-hover z-50
+          flex flex-col flex-shrink-0
           transition-transform duration-200 ease-in-out
-          lg:translate-x-0 lg:static lg:z-auto
-          ${open ? "translate-x-0" : "-translate-x-full"}
+          ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
       >
         {/* Brand header */}
-        <div className="flex items-center justify-between px-5 h-16 border-b border-surface-hover">
+        <div className="flex items-center justify-between px-5 h-16 border-b border-surface-hover flex-shrink-0">
           <div className="flex items-baseline gap-0.5">
             <span className="text-lg font-bold text-teal">Care</span>
             <span className="text-lg font-bold text-amber">Notes</span>
@@ -69,7 +68,7 @@ export function Sidebar({ open, onClose }: Props) {
         </nav>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-surface-hover">
+        <div className="px-5 py-4 border-t border-surface-hover flex-shrink-0">
           <p className="text-[10px] text-teal-dark/40 leading-tight">
             AI output is always DRAFT — clinician review required before Epic
             entry.

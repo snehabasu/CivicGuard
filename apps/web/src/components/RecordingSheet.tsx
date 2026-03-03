@@ -17,7 +17,7 @@ type RecordingSheetProps = {
   open: boolean;
   onClose: () => void;
   visitId: string;
-  onTranscriptReady: (visitId: string, transcript: string) => void;
+  onTranscriptReady: (visitId: string, transcript: string, patientName: string) => void;
 };
 
 const NOTE_TYPES = [
@@ -194,10 +194,21 @@ export function RecordingSheet({
 
   const confirmAndUpload = useCallback(async () => {
     if (recordedBlobs.length === 0) return;
+
+    const patientName = selectedPatient || patientQuery.trim();
+    if (!patientName) {
+      setError("Please enter a patient name.");
+      return;
+    }
+    if (selectedNoteTypes.length === 0) {
+      setError("Please select at least one note type.");
+      return;
+    }
+
     const merged = new Blob(recordedBlobs, { type: recordedBlobs[0].type });
     setState("uploading");
     await uploadAudio(merged);
-  }, [recordedBlobs, visitId]);
+  }, [recordedBlobs, visitId, selectedPatient, patientQuery, selectedNoteTypes]);
 
   const uploadAudio = async (blob: Blob) => {
     const form = new FormData();
@@ -212,7 +223,8 @@ export function RecordingSheet({
       if (!res.ok) throw new Error(`Transcription failed: HTTP ${res.status}`);
       const data = await res.json();
       setState("done");
-      onTranscriptReady(data.visitId, data.transcript);
+      const patientName = selectedPatient || patientQuery.trim();
+      onTranscriptReady(data.visitId, data.transcript, patientName);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Upload failed. Please try again.",

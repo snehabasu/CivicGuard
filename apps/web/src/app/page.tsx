@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { Sidebar } from "@/components/Sidebar";
 import { NoteCard } from "@/components/NoteCard";
-import { mockNoteGroups } from "@/lib/mockNotes";
+import { seedDummyNotes } from "@/lib/mockNotes";
+import { useNoteGroups } from "@/lib/useNoteGroups";
+import { saveNote } from "@/lib/noteStorage";
 import { SearchIcon, MenuIcon, XIcon } from "@/components/icons";
 import type { FullCaseNote } from "@civicguard/shared";
 
@@ -22,22 +24,30 @@ export default function HomePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const router = useRouter();
+  const noteGroups = useNoteGroups();
 
-  const handleTranscriptReady = async (vId: string, transcript: string) => {
+  useEffect(() => {
+    seedDummyNotes();
+  }, []);
+
+  const handleTranscriptReady = async (vId: string, transcript: string, patientName: string) => {
     setIsProcessing(true);
     try {
       const res = await fetch("/api/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visitId: vId, transcript }),
+        body: JSON.stringify({ visitId: vId, transcript, patientName }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Processing failed" }));
         throw new Error(err.error ?? "Processing failed");
       }
       const note: FullCaseNote = await res.json();
+      // Save to localStorage for persistence
+      saveNote(note);
+      // Also keep sessionStorage for backward compat
       sessionStorage.setItem("pendingCaseNote", JSON.stringify(note));
-      router.push("/review");
+      router.push(`/review?visitId=${note.visitId}`);
     } catch (err) {
       console.error("[HomePage] process error:", err);
       alert(err instanceof Error ? err.message : "Failed to generate case note. Please try again.");
@@ -46,12 +56,12 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full overflow-x-hidden">
+    <div className="min-h-screen w-full">
       {/* Sidebar */}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main content */}
-      <div className="flex-1 min-w-0 flex flex-col min-h-screen">
+      <div className="min-w-0 flex flex-col min-h-screen lg:ml-[260px]">
         {/* Top header bar */}
         <header className="sticky top-0 z-30 bg-surface border-b border-surface-hover">
           <div className="flex items-center gap-3 px-4 h-16">
@@ -110,7 +120,7 @@ export default function HomePage() {
         <main className="flex-1 overflow-y-auto px-4 py-6 pb-28 scrollbar-hide">
           <div className="max-w-2xl mx-auto space-y-6">
             {/* Note groups */}
-            {mockNoteGroups.map((group) => (
+            {noteGroups.map((group) => (
               <section key={group.label}>
                 <h2 className="text-xs font-semibold text-teal-dark/40 uppercase tracking-wider px-4 mb-2">
                   {group.label}
