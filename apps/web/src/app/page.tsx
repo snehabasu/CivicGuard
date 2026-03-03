@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
+import { Sidebar } from "@/components/Sidebar";
+import { NoteCard } from "@/components/NoteCard";
+import { seedDummyNotes } from "@/lib/mockNotes";
+import { useNoteGroups } from "@/lib/useNoteGroups";
+import { saveNote } from "@/lib/noteStorage";
+import { SearchIcon, MenuIcon, XIcon } from "@/components/icons";
 import type { FullCaseNote } from "@civicguard/shared";
 
 function newVisitId(): string {
@@ -15,128 +21,131 @@ function newVisitId(): string {
 export default function HomePage() {
   const [visitId] = useState(newVisitId);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingError, setProcessingError] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const router = useRouter();
+  const noteGroups = useNoteGroups();
 
-  const handleTranscriptReady = async (vId: string, transcript: string) => {
+  useEffect(() => {
+    seedDummyNotes();
+  }, []);
+
+  const handleTranscriptReady = async (vId: string, transcript: string, patientName: string) => {
     setIsProcessing(true);
-    setProcessingError(null);
-
     try {
       const res = await fetch("/api/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ visitId: vId, transcript }),
+        body: JSON.stringify({ visitId: vId, transcript, patientName }),
       });
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(
-          (errData as { error?: string }).error ??
-            `Request failed: HTTP ${res.status}`
-        );
+        const err = await res.json().catch(() => ({ error: "Processing failed" }));
+        throw new Error(err.error ?? "Processing failed");
       }
-      const note = (await res.json()) as FullCaseNote;
-
-      // Store in sessionStorage — tab-scoped, clears on close, keeps PHI off URLs
+      const note: FullCaseNote = await res.json();
+      // Save to localStorage for persistence
+      saveNote(note);
+      // Also keep sessionStorage for backward compat
       sessionStorage.setItem("pendingCaseNote", JSON.stringify(note));
-      router.push("/review");
+      router.push(`/review?visitId=${note.visitId}`);
     } catch (err) {
-      setProcessingError(
-        err instanceof Error ? err.message : "Failed to process transcript."
-      );
+      console.error("[HomePage] process error:", err);
+      alert(err instanceof Error ? err.message : "Failed to generate case note. Please try again.");
       setIsProcessing(false);
     }
   };
 
   return (
-    <main>
-      <h1 style={{ marginTop: 0 }}>Post-Visit Documentation</h1>
+    <div className="min-h-screen w-full">
+      {/* Sidebar */}
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <section
-        style={{
-          background: "#f0f9ff",
-          border: "1px solid #bae6fd",
-          borderRadius: 8,
-          padding: "1rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <p style={{ margin: 0, color: "#0369a1" }}>
-          <strong>How it works:</strong> Record a brief voice reflection
-          immediately after your visit. CivicGuard will draft documentation for
-          your review. You must review and approve all content before it is
-          submitted to Epic.
-        </p>
-      </section>
+      {/* Main content */}
+      <div className="min-w-0 flex flex-col min-h-screen lg:ml-[260px]">
+        {/* Top header bar */}
+        <header className="sticky top-0 z-30 bg-surface border-b border-surface-hover">
+          <div className="flex items-center gap-3 px-4 h-16">
+            {searchOpen ? (
+              /* Search expanded — takes over entire header */
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="relative flex-1 min-w-0">
+                  <SearchIcon
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-teal-dark/30"
+                  />
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="Search notes..."
+                    className="w-full pl-9 pr-4 py-2 rounded-lg bg-surface-card text-sm text-teal-dark placeholder:text-teal-dark/30 outline-none focus:ring-2 focus:ring-teal/30 transition-shadow"
+                    readOnly
+                  />
+                </div>
+                <button
+                  onClick={() => setSearchOpen(false)}
+                  className="flex-shrink-0 p-2 rounded-lg hover:bg-surface-hover text-teal-dark/60"
+                >
+                  <XIcon size={18} />
+                </button>
+              </div>
+            ) : (
+              /* Normal header — hamburger, brand, search icon */
+              <>
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="lg:hidden p-2 rounded-lg hover:bg-surface-hover text-teal-dark/60"
+                >
+                  <MenuIcon size={20} />
+                </button>
 
-      <section
-        style={{
-          background: "#fef9c3",
-          border: "1px solid #fde047",
-          borderRadius: 8,
-          padding: "0.75rem 1rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        <p style={{ margin: 0, fontSize: "0.875rem", color: "#713f12" }}>
-          <strong>Do not include</strong> in your recording: client name, date
-          of birth, legal or immigration status, or any information that does
-          not serve a clinical purpose.
-        </p>
-      </section>
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-lg font-bold text-teal">Care</span>
+                  <span className="text-lg font-bold text-amber">Notes</span>
+                </div>
 
-      <section>
-        <h2 style={{ marginTop: 0 }}>Record Reflection</h2>
-        <VoiceRecorder
-          visitId={visitId}
-          onTranscriptReady={handleTranscriptReady}
-        />
-      </section>
+                <div className="flex-1" />
 
-      {isProcessing && (
-        <div
-          style={{
-            marginTop: "1.5rem",
-            padding: "1rem",
-            background: "#f9fafb",
-            borderRadius: 8,
-            color: "#374151",
-          }}
-        >
-          <p style={{ margin: 0 }}>
-            Generating draft documentation... this takes 5–10 seconds.
-          </p>
+                <button
+                  onClick={() => setSearchOpen(true)}
+                  className="p-2 rounded-lg hover:bg-surface-hover text-teal-dark/60"
+                >
+                  <SearchIcon size={20} />
+                </button>
+              </>
+            )}
+          </div>
+        </header>
+
+        {/* Notes history — scrollable area */}
+        <main className="flex-1 overflow-y-auto px-4 py-6 pb-28 scrollbar-hide">
+          <div className="max-w-2xl mx-auto space-y-6">
+            {/* Note groups */}
+            {noteGroups.map((group) => (
+              <section key={group.label}>
+                <h2 className="text-xs font-semibold text-teal-dark/40 uppercase tracking-wider px-4 mb-2">
+                  {group.label}
+                </h2>
+                <div className="space-y-0.5">
+                  {group.notes.map((note) => (
+                    <NoteCard key={note.id} note={note} />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </main>
+
+        {/* Floating pill — fixed to bottom center */}
+        <div className="fixed bottom-5 left-0 right-0 z-30 flex justify-center pointer-events-none">
+          <div className="pointer-events-auto">
+            <VoiceRecorder
+              visitId={visitId}
+              onTranscriptReady={handleTranscriptReady}
+              isProcessing={isProcessing}
+            />
+          </div>
         </div>
-      )}
-
-      {processingError && (
-        <div
-          style={{
-            marginTop: "1.5rem",
-            padding: "1rem",
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            borderRadius: 8,
-          }}
-        >
-          <p style={{ margin: 0, color: "#dc2626" }}>
-            <strong>Error:</strong> {processingError}
-          </p>
-          <button
-            style={{
-              marginTop: "0.5rem",
-              padding: "0.4rem 0.8rem",
-              border: "none",
-              borderRadius: 4,
-              background: "#fee2e2",
-              cursor: "pointer",
-            }}
-            onClick={() => setProcessingError(null)}
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-    </main>
+      </div>
+    </div>
   );
 }

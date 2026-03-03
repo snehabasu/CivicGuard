@@ -121,13 +121,14 @@ Draft the clinical documentation as specified. Return only the JSON object.`;
 
   const note: FullCaseNote = {
     visitId: req.visitId,
+    patientName: req.patientName ?? "",
     isDraft: true,
     draftLabel: "DRAFT — pending clinician review",
     generatedAtIso: new Date().toISOString(),
     transcript: req.transcript,
     ...(parsed as Omit<
       FullCaseNote,
-      "visitId" | "isDraft" | "draftLabel" | "generatedAtIso" | "transcript"
+      "visitId" | "patientName" | "isDraft" | "draftLabel" | "generatedAtIso" | "transcript"
     >),
   };
 

@@ -12,5 +12,11 @@
     "build": "npm run build --workspace=apps/web",
     "type-check": "npm run type-check --workspace=packages/shared && npm run type-check --workspace=apps/web",
     "test": "echo \"Tests pending\""
+  },
+  "devDependencies": {
+  },
+  "overrides": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }
