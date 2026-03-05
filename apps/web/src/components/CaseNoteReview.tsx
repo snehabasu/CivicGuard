@@ -6,6 +6,8 @@ import type {
   SoapNote,
   PsychosocialAssessment,
   ConfidenceLevel,
+  IcdCode,
+  FollowUpQuestion,
 } from "@carenotes/shared";
 
 type Props = {
@@ -270,6 +272,58 @@ export function CaseNoteReview({ initialNote, onApprove }: Props) {
           </div>
         )}
       </section>
+
+      {/* ICD-10 Codes */}
+      {note.icdCodes.length > 0 && (
+        <section style={sectionStyle}>
+          <h2 style={{ marginTop: 0 }}>Suggested ICD-10 Codes</h2>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid #e5e7eb" }}>
+                <th style={{ textAlign: "left", padding: "0.4rem 0.5rem", fontWeight: 600 }}>Code</th>
+                <th style={{ textAlign: "left", padding: "0.4rem 0.5rem", fontWeight: 600 }}>Description</th>
+                <th style={{ textAlign: "left", padding: "0.4rem 0.5rem", fontWeight: 600 }}>Confidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {note.icdCodes.map((c, i) => (
+                <tr key={i} style={{ borderBottom: "1px solid #f3f4f6" }}>
+                  <td style={{ padding: "0.4rem 0.5rem", fontFamily: "monospace", fontWeight: 600 }}>{c.code}</td>
+                  <td style={{ padding: "0.4rem 0.5rem", color: "#374151" }}>{c.description}</td>
+                  <td style={{ padding: "0.4rem 0.5rem", color: CONFIDENCE_COLOR[c.confidence] }}>{c.confidence.replace("_", " ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      {/* Follow-Up Questions for Next Session */}
+      {note.followUpQuestions.length > 0 && (
+        <section style={sectionStyle}>
+          <h2 style={{ marginTop: 0 }}>Suggested Follow-Up Questions for Next Session</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            {note.followUpQuestions.map((q, i) => (
+              <div
+                key={i}
+                style={{
+                  background: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: 6,
+                  padding: "0.75rem 1rem",
+                }}
+              >
+                <p style={{ margin: 0, fontWeight: 600, fontSize: "0.9rem", color: "#14532d" }}>
+                  {i + 1}. {q.question}
+                </p>
+                <p style={{ margin: "0.35rem 0 0", fontSize: "0.8rem", color: "#166534" }}>
+                  <em>Why: {q.rationale}</em>
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Approve */}
       <section>
