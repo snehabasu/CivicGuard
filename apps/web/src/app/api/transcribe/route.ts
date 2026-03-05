@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { TranscribeResponse } from "@civicguard/shared";
 import { randomUUID } from "crypto";
-import Groq from "groq-sdk";
+import { DeepgramClient } from "@deepgram/sdk";
 import { maskSensitiveContent } from "@/lib/maskTranscript";
 
-/** Maps MIME type to a file extension Groq's Whisper API recognises. */
-function getExtension(mimeType: string): string {
-  if (mimeType.includes("mp4") || mimeType.includes("m4a")) return "mp4";
-  if (mimeType.includes("ogg")) return "ogg";
-  if (mimeType.includes("wav")) return "wav";
-  if (mimeType.includes("mp3") || mimeType.includes("mpeg")) return "mp3";
-  return "webm"; // covers audio/webm and audio/webm;codecs=opus
-}
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  const groq = new Groq(); // reads GROQ_API_KEY from process.env at request time
+  // Reads DEEPGRAM_API_KEY from process.env automatically if not passed
+  const deepgram = new DeepgramClient({ apiKey: process.env.DEEPGRAM_API_KEY });
 
   let formData: FormData;
   try {
@@ -33,21 +25,29 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const durationSeconds = Math.max(1, Math.round(audioFile.size / 16000));
 
-  // Rename to a proper extension so Groq can detect the audio format
-  const ext = getExtension(audioFile.type);
-  const renamedFile = new File([audioFile], `recording.${ext}`, { type: audioFile.type });
-
   let transcript: string;
   try {
-    const result = await groq.audio.transcriptions.create({
-      file: renamedFile,
-      model: "whisper-large-v3-turbo",
-      language: "en",
-    });
-    transcript = result.text.trim();
+    const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
+
+    // nova-2-medical is trained on clinical speech — handles medical terminology,
+    // abbreviations (PHQ-9, PHP, PMR, GAF), and clinical phrasing better than Whisper.
+    const response = await deepgram.listen.v1.media.transcribeFile(
+      audioBuffer,
+      {
+        model: "nova-2-medical",
+        language: "en",
+        smart_format: true,
+      }
+    );
+
+    // For synchronous requests, response is ListenV1Response (not ListenV1AcceptedResponse)
+    transcript = (
+      (response as { results?: { channels?: { alternatives?: { transcript?: string }[] }[] } })
+        .results?.channels?.[0]?.alternatives?.[0]?.transcript ?? ""
+    ).trim();
   } catch (err) {
     const message = err instanceof Error ? err.message : "Transcription failed";
-    console.error("[/api/transcribe] Groq Whisper error:", message);
+    console.error("[/api/transcribe] Deepgram error:", message);
     return NextResponse.json({ error: "Transcription failed. Please try again." }, { status: 500 });
   }
 
