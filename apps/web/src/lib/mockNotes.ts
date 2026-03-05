@@ -1,5 +1,5 @@
 import type { FullCaseNote, ApprovedCaseNote } from "@carenotes/shared";
-import { getAllNotes, saveNote } from "./noteStorage";
+import { saveNote } from "./noteStorage";
 
 export type MockNote = {
   id: string;
@@ -555,14 +555,11 @@ const SEED_KEY = "caseNotesSeeded_v2";
 
 export function seedDummyNotes(): void {
   if (typeof window === "undefined") return;
-  // Only seed if we haven't before
+  // Only seed if we haven't for this version; bumping SEED_KEY forces a
+  // re-seed so that stale notes missing new fields get overwritten.
   if (localStorage.getItem(SEED_KEY)) return;
-  const existing = getAllNotes();
-  const existingIds = new Set(existing.map((n) => n.visitId));
   for (const note of dummyNotes) {
-    if (!existingIds.has(note.visitId)) {
-      saveNote(note);
-    }
+    saveNote(note);
   }
   localStorage.setItem(SEED_KEY, "true");
 }
