@@ -62,7 +62,7 @@ export default function HomePage() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main content */}
-      <div className="min-w-0 flex flex-col min-h-screen lg:ml-[260px]">
+      <div className="min-w-0 flex flex-col min-h-screen lg:ml-sidebar">
         {/* Top header bar */}
         <header className="sticky top-0 z-30 bg-surface border-b border-surface-hover">
           <div className="flex items-center gap-3 px-4 h-16">

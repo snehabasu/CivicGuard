@@ -250,7 +250,7 @@ export function RecordingSheet({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 lg:left-[260px] z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 lg:left-sidebar z-50 flex flex-col justify-end">
       {/* Backdrop */}
       <div
         className={`absolute inset-0 bg-black/30 ${closing ? "animate-fade-out" : "animate-fade-in"}`}

@@ -23,6 +23,9 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
+      spacing: {
+        sidebar: "var(--sidebar-width)",
+      },
     },
   },
   plugins: [

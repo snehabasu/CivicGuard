@@ -31,7 +31,7 @@ export function ReviewSidebar({
 
       <aside
         className={`
-          fixed top-0 left-0 h-dvh w-[260px] bg-white border-r border-surface-hover z-50
+          fixed top-0 left-0 h-dvh w-sidebar bg-white border-r border-surface-hover z-50
           flex flex-col flex-shrink-0
           transition-transform duration-200 ease-in-out
           ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}

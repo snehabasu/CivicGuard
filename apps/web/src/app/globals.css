@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  --sidebar-width: 260px;
   --teal: #2B7A78;
   --teal-dark: #17252A;
   --teal-light: #A8D5D1;
