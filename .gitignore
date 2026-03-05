@@ -7,3 +7,4 @@ build
 coverage
 *.log
 .next
+deepgram-sdk-5.0.0.tgz
