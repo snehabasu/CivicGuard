@@ -120,18 +120,21 @@ export default function HomePage() {
         {/* Patient list — scrollable area */}
         <main className="flex-1 overflow-y-auto px-4 py-6 pb-28 scrollbar-hide">
           <div className="max-w-2xl mx-auto space-y-2">
-            {patientGroups.map((group) => (
-              <PatientCard
-                key={group.patientName}
-                group={group}
-                isExpanded={expandedPatient === group.patientName}
-                onToggle={() =>
-                  setExpandedPatient((prev) =>
-                    prev === group.patientName ? null : group.patientName
-                  )
-                }
-              />
-            ))}
+            {patientGroups.map((group, index) => {
+              const patientKey = `${group.patientName}__${index}`;
+              return (
+                <PatientCard
+                  key={patientKey}
+                  group={group}
+                  isExpanded={expandedPatient === patientKey}
+                  onToggle={() =>
+                    setExpandedPatient((prev) =>
+                      prev === patientKey ? null : patientKey
+                    )
+                  }
+                />
+              );
+            })}
           </div>
         </main>
 
