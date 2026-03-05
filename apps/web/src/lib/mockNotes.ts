@@ -1,5 +1,5 @@
 import type { FullCaseNote, ApprovedCaseNote } from "@carenotes/shared";
-import { saveNote } from "./noteStorage";
+import { saveNotesBatch } from "./noteStorage";
 
 export type MockNote = {
   id: string;
@@ -535,8 +535,6 @@ export function seedDummyNotes(): void {
   // Only seed if we haven't for this version; bumping SEED_KEY forces a
   // re-seed so that stale notes missing new fields get overwritten.
   if (localStorage.getItem(SEED_KEY)) return;
-  for (const note of dummyNotes) {
-    saveNote(note);
-  }
+  saveNotesBatch(dummyNotes);
   localStorage.setItem(SEED_KEY, "true");
 }

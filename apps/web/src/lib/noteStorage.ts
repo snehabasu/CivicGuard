@@ -39,6 +39,20 @@ export function saveNote(note: StoredNote): void {
   notifyChange();
 }
 
+export function saveNotesBatch(incoming: StoredNote[]): void {
+  const notes = getAllNotes();
+  for (const note of incoming) {
+    const idx = notes.findIndex((n) => n.visitId === note.visitId);
+    if (idx >= 0) {
+      notes[idx] = note;
+    } else {
+      notes.push(note);
+    }
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+  notifyChange();
+}
+
 export function deleteNote(visitId: string): void {
   const notes = getAllNotes().filter((n) => n.visitId !== visitId);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
