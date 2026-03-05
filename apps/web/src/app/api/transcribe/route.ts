@@ -5,9 +5,16 @@ import { DeepgramClient } from "@deepgram/sdk";
 import { maskSensitiveContent } from "@/lib/maskTranscript";
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // Reads DEEPGRAM_API_KEY from process.env automatically if not passed
-  const deepgram = new DeepgramClient({ apiKey: process.env.DEEPGRAM_API_KEY });
+  const apiKey = process.env.DEEPGRAM_API_KEY;
+  if (!apiKey) {
+    console.error("[/api/transcribe] Missing DEEPGRAM_API_KEY environment variable");
+    return NextResponse.json(
+      { error: "Transcription service is not configured. Please contact support." },
+      { status: 503 }
+    );
+  }
 
+  const deepgram = new DeepgramClient({ apiKey });
   let formData: FormData;
   try {
     formData = await req.formData();
