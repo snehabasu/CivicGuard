@@ -528,7 +528,7 @@ const dummyNotes: (FullCaseNote | ApprovedCaseNote)[] = [
   draftLisaFeb25,
 ];
 
-const SEED_KEY = "caseNotesSeeded";
+const SEED_KEY = "caseNotesSeeded_v2";
 
 export function seedDummyNotes(): void {
   if (typeof window === "undefined") return;

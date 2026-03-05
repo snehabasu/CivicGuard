@@ -106,8 +106,8 @@ function initTexts(note: NoteData): Record<NoteType, string> {
     psychosocial: serializePsychosocial(note.psychosocial),
     flags: serializeFlags(note.stressFlags),
     boundaries: serializeBoundaries(note.boundaries),
-    icd: serializeIcdCodes(note.icdCodes),
-    followup: serializeFollowUpQuestions(note.followUpQuestions),
+    icd: serializeIcdCodes(note.icdCodes ?? []),
+    followup: serializeFollowUpQuestions(note.followUpQuestions ?? []),
   };
 }
 
