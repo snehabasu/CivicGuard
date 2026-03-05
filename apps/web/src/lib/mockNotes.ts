@@ -17,6 +17,29 @@ export type NoteGroup = {
   notes: MockNote[];
 };
 
+export type SessionSummary = {
+  visitId: string;
+  date: Date;
+  dateLabel: string;   // "Today", "Feb 25", etc.
+  time: string;        // "12:21pm"
+  status: "draft" | "approved";
+  tags: string[];      // first 3 stress flag keywords
+  highCount: number;
+  mediumCount: number;
+  lowCount: number;
+};
+
+export type PatientGroup = {
+  patientName: string;
+  initials: string;
+  avatarColor: string;
+  lastSessionDate: Date;
+  lastSessionLabel: string; // "Today at 12:21pm"
+  totalSessions: number;
+  peakSeverity: "high" | "medium" | "low" | "none";
+  sessions: SessionSummary[]; // oldest → newest (chart order)
+};
+
 export const mockPatients = [
   { name: "Lisa Smith", initials: "LS", avatarColor: "bg-teal-light" },
   { name: "Jennifer Simpson", initials: "JS", avatarColor: "bg-amber" },
