@@ -31,8 +31,8 @@ export function NoteTypePills({ active, onChange }: Props) {
 
   return (
     <>
-      {/* Mobile: dropdown */}
-      <div className="sm:hidden relative">
+      {/* Mobile / narrow: dropdown */}
+      <div className="md:hidden relative">
         <select
           value={active}
           onChange={(e) => onChange(e.target.value as NoteType)}
@@ -50,8 +50,8 @@ export function NoteTypePills({ active, onChange }: Props) {
         />
       </div>
 
-      {/* Desktop: pills */}
-      <div className="hidden sm:flex gap-2">
+      {/* Desktop: scrollable pill row */}
+      <div className="hidden md:flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
         {PILLS.map(({ type, label }) => (
           <button
             key={type}

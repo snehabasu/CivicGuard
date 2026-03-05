@@ -187,30 +187,8 @@ export function NoteView({
 
   return (
     <div className="space-y-4">
-      {/* Pill bar + Copy */}
-      <div className="flex items-center gap-3">
-        <div className="flex-1 min-w-0">
-          <NoteTypePills active={activeType} onChange={setActiveType} />
-        </div>
-        <button
-          onClick={handleCopy}
-          className={`flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-            copied
-              ? "bg-green-50 text-green-600"
-              : "bg-surface-card text-teal-dark/60 hover:text-teal-dark/80"
-          }`}
-        >
-          {copied ? (
-            <>
-              <CheckIcon size={14} /> Copied
-            </>
-          ) : (
-            <>
-              <CopyIcon size={14} /> Copy
-            </>
-          )}
-        </button>
-      </div>
+      {/* Pill bar */}
+      <NoteTypePills active={activeType} onChange={setActiveType} />
 
       {/* Insufficient data banner — only on psychosocial tab */}
       {activeType === "psychosocial" && hasInsufficientData && (
@@ -221,8 +199,28 @@ export function NoteView({
         </div>
       )}
 
-      {/* Single big textarea */}
+      {/* Textarea card with copy button */}
       <div className="bg-white rounded-xl px-6 py-5">
+        <div className="flex justify-end mb-2">
+          <button
+            onClick={handleCopy}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              copied
+                ? "bg-green-50 text-green-600"
+                : "bg-surface-card text-teal-dark/60 hover:text-teal-dark/80"
+            }`}
+          >
+            {copied ? (
+              <>
+                <CheckIcon size={14} /> Copied
+              </>
+            ) : (
+              <>
+                <CopyIcon size={14} /> Copy
+              </>
+            )}
+          </button>
+        </div>
         <textarea
           ref={textareaRef}
           value={editedTexts[activeType]}
