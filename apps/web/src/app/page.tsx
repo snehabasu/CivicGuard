@@ -23,6 +23,7 @@ export default function HomePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [expandedPatient, setExpandedPatient] = useState<string | null>(null);
   const router = useRouter();
   const patientGroups = usePatientGroups();
@@ -62,7 +63,7 @@ export default function HomePage() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main content */}
-      <div className="min-w-0 flex flex-col min-h-screen lg:ml-[260px]">
+      <div className="min-w-0 flex flex-col min-h-screen lg:ml-sidebar">
         {/* Top header bar */}
         <header className="sticky top-0 z-30 bg-surface border-b border-surface-hover">
           <div className="flex items-center gap-3 px-4 h-16">
@@ -77,13 +78,14 @@ export default function HomePage() {
                   <input
                     autoFocus
                     type="text"
-                    placeholder="Search notes..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search patients or tags..."
                     className="w-full pl-9 pr-4 py-2 rounded-lg bg-surface-card text-sm text-teal-dark placeholder:text-teal-dark/30 outline-none focus:ring-2 focus:ring-teal/30 transition-shadow"
-                    readOnly
                   />
                 </div>
                 <button
-                  onClick={() => setSearchOpen(false)}
+                  onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
                   className="flex-shrink-0 p-2 rounded-lg hover:bg-surface-hover text-teal-dark/60"
                 >
                   <XIcon size={18} />
@@ -120,21 +122,42 @@ export default function HomePage() {
         {/* Patient list — scrollable area */}
         <main className="flex-1 overflow-y-auto px-4 py-6 pb-28 scrollbar-hide">
           <div className="max-w-2xl mx-auto space-y-2">
-            {patientGroups.map((group, index) => {
-              const patientKey = `${group.patientName}__${index}`;
-              return (
-                <PatientCard
-                  key={patientKey}
-                  group={group}
-                  isExpanded={expandedPatient === patientKey}
-                  onToggle={() =>
-                    setExpandedPatient((prev) =>
-                      prev === patientKey ? null : patientKey
-                    )
-                  }
-                />
-              );
-            })}
+            {(() => {
+              const q = searchQuery.trim().toLowerCase();
+              const filtered = q
+                ? patientGroups.filter(
+                    (g) =>
+                      g.patientName.toLowerCase().includes(q) ||
+                      g.sessions.some((s) =>
+                        s.tags.some((t) => t.toLowerCase().includes(q))
+                      )
+                  )
+                : patientGroups;
+
+              if (filtered.length === 0 && q) {
+                return (
+                  <p className="text-sm text-teal-dark/30 text-center py-10">
+                    No patients match &ldquo;{searchQuery}&rdquo;
+                  </p>
+                );
+              }
+
+              return filtered.map((group, index) => {
+                const patientKey = `${group.patientName}__${index}`;
+                return (
+                  <PatientCard
+                    key={patientKey}
+                    group={group}
+                    isExpanded={expandedPatient === patientKey}
+                    onToggle={() =>
+                      setExpandedPatient((prev) =>
+                        prev === patientKey ? null : patientKey
+                      )
+                    }
+                  />
+                );
+              });
+            })()}
           </div>
         </main>
 
