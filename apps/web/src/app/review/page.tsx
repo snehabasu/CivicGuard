@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { FullCaseNote, ApprovedCaseNote } from "@carenotes/shared";
 import { getNoteById, saveNote } from "@/lib/noteStorage";
+import { createSupabaseBrowserClient } from "@/lib/supabaseClient";
 import { ReviewSidebar } from "@/components/ReviewSidebar";
 import { ContextTab } from "@/components/review/ContextTab";
 import { NoteView } from "@/components/review/NoteView";
@@ -79,6 +80,23 @@ function ReviewContent() {
     // Clean up sessionStorage
     sessionStorage.removeItem("pendingCaseNote");
     sessionStorage.setItem("approvedCaseNote", JSON.stringify(approved));
+
+    // Persist approved note to Supabase (best-effort)
+    const supabase = createSupabaseBrowserClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase.from("case_notes").upsert({
+        visit_id: approved.visitId,
+        user_id: user.id,
+        data: approved,
+        is_draft: false,
+        patient_name: approved.patientName,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "visit_id" }).then(({ error }) => {
+        if (error) console.error("[review] Supabase upsert error:", error.message);
+      });
+    });
+
     // Stay on the same page — switch to approved state
     setNote(approved);
   };

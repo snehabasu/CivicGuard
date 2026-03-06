@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { ProcessRequest } from "@carenotes/shared";
 import { generateCaseNote } from "@/lib/claude";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
 /**
  * POST /api/process
@@ -32,6 +33,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   try {
     const note = await generateCaseNote(body);
+
+    // Persist to Supabase (best-effort — don't fail the request if this errors)
+    try {
+      const supabase = await createSupabaseServerClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("case_notes").upsert({
+          visit_id: note.visitId,
+          user_id: user.id,
+          data: note,
+          is_draft: true,
+          patient_name: note.patientName,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "visit_id" });
+      }
+    } catch (dbErr) {
+      console.error("[/api/process] Supabase write error:", dbErr);
+    }
+
     return NextResponse.json(note);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

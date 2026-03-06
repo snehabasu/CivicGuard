@@ -8,6 +8,7 @@ import { PatientCard } from "@/components/PatientCard";
 import { seedDummyNotes } from "@/lib/mockNotes";
 import { usePatientGroups } from "@/lib/usePatientGroups";
 import { saveNote } from "@/lib/noteStorage";
+import { pullNotesFromSupabase } from "@/lib/noteSync";
 import { SearchIcon, MenuIcon, XIcon } from "@/components/icons";
 import type { FullCaseNote } from "@carenotes/shared";
 
@@ -23,6 +24,8 @@ export default function HomePage() {
 
   useEffect(() => {
     seedDummyNotes();
+    // Hydrate localStorage from Supabase; usePatientGroups auto-re-renders via saveNotesBatch
+    pullNotesFromSupabase();
   }, []);
 
   const handleTranscriptReady = async (vId: string, transcript: string, patientName: string) => {
