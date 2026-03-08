@@ -31,6 +31,7 @@ function LoginForm() {
       return;
     }
 
+    setLoading(false);
     router.push(redirectTo);
     router.refresh();
   };

@@ -15,6 +15,7 @@ import type { FullCaseNote } from "@carenotes/shared";
 
 export default function HomePage() {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingError, setProcessingError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,7 +50,7 @@ export default function HomePage() {
       router.push(`/review?visitId=${note.visitId}`);
     } catch (err) {
       console.error("[HomePage] process error:", err);
-      alert(err instanceof Error ? err.message : "Failed to generate case note. Please try again.");
+      setProcessingError(err instanceof Error ? err.message : "Failed to generate case note. Please try again.");
       setIsProcessing(false);
     }
   };
@@ -164,6 +165,8 @@ export default function HomePage() {
             <VoiceRecorder
               onTranscriptReady={handleTranscriptReady}
               isProcessing={isProcessing}
+              processingError={processingError}
+              onDismissError={() => setProcessingError(null)}
             />
           </div>
         </div>

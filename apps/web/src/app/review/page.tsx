@@ -19,6 +19,11 @@ function ReviewContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const router = useRouter();
+
+  const handleSelectNote = (id: string) => {
+    setSelectedNoteId(id);
+    router.push(`/review?visitId=${id}`);
+  };
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -57,7 +62,7 @@ function ReviewContent() {
     router.replace("/");
   }, [router, searchParams]);
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (!note || !approverName.trim()) return;
     const approved: ApprovedCaseNote = {
       visitId: note.visitId,
@@ -81,23 +86,26 @@ function ReviewContent() {
     sessionStorage.removeItem("pendingCaseNote");
     sessionStorage.setItem("approvedCaseNote", JSON.stringify(approved));
 
-    // Persist approved note to Supabase (best-effort)
-    const supabase = createSupabaseBrowserClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("case_notes").upsert({
-        visit_id: approved.visitId,
-        user_id: user.id,
-        data: approved,
-        is_draft: false,
-        patient_name: approved.patientName,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "visit_id" }).then(({ error }) => {
+    // Persist approved note to Supabase (awaited so approval is confirmed before UI updates)
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { error } = await supabase.from("case_notes").upsert({
+          visit_id: approved.visitId,
+          user_id: user.id,
+          data: approved,
+          is_draft: false,
+          patient_name: approved.patientName,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "visit_id" });
         if (error) console.error("[review] Supabase upsert error:", error.message);
-      });
-    });
+      }
+    } catch (err) {
+      console.error("[review] Supabase approval error:", err);
+    }
 
-    // Stay on the same page — switch to approved state
+    // Switch to approved state
     setNote(approved);
   };
 
@@ -123,7 +131,7 @@ function ReviewContent() {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         selectedNoteId={selectedNoteId}
-        onSelectNote={setSelectedNoteId}
+        onSelectNote={handleSelectNote}
       />
 
       {/* Main content */}
