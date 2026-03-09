@@ -9,10 +9,10 @@ All AI output is a draft. The clinician reviews, edits, and approves before anyt
 ```mermaid
 flowchart TD
     subgraph UI["User Interface (Next.js 14 — Vercel)"]
-        A[fa:fa-microphone VoiceRecorder\nMediaRecorder API\naudio/webm · audio/mp4]
-        B[fa:fa-list HomePage\nPatient list + search]
-        C[fa:fa-file-alt ReviewPage\nDraft review · edit · approve]
-        D[fa:fa-copy Epic Export\nCopy sections to clipboard]
+        A[VoiceRecorder<br/>MediaRecorder API<br/>audio/webm · audio/mp4]
+        B[HomePage<br/>Patient list + search]
+        C[ReviewPage<br/>Draft review · edit · approve]
+        D[Epic Export<br/>Copy sections to clipboard]
     end
 
     subgraph Auth["Auth Layer"]
@@ -21,26 +21,26 @@ flowchart TD
     end
 
     subgraph API["API Routes (Next.js — same Vercel deployment)"]
-        T["/api/transcribe\nDeepgram nova-2-medical"]
-        P["/api/process\nClaude claude-sonnet-4-6"]
-        MASK[PII Masking\nSSN · phone · email · dates\nlegal status signals]
+        T[/api/transcribe<br/>Deepgram nova-2-medical]
+        P[/api/process<br/>Claude claude-sonnet-4-6]
+        MASK[PII Masking<br/>SSN · phone · email · dates<br/>legal status signals]
     end
 
     subgraph AI["AI Services"]
-        DEEPGRAM["Deepgram\nnova-2-medical (clinical transcription)"]
-        CLAUDE["Anthropic Claude\nclaude-sonnet-4-6\nStructured JSON output"]
+        DEEPGRAM["Deepgram<br/>nova-2-medical (clinical transcription)"]
+        CLAUDE["Anthropic Claude<br/>claude-sonnet-4-6<br/>Structured JSON output"]
     end
 
     subgraph Storage["Persistence"]
-        LS[(localStorage\nlocal cache)]
-        SB[(Supabase Postgres\ncase_notes table\ndata: jsonb · RLS)]
+        LS[(localStorage<br/>local cache)]
+        SB[(Supabase Postgres<br/>case_notes table<br/>data: jsonb · RLS)]
         SBAUTH[Supabase Auth\nJWT · email+password]
     end
 
     subgraph Output["Structured Case Note (FullCaseNote)"]
         N1[Narrative Summary]
         N2[SOAP Note]
-        N3[Psychosocial Assessment\n6 fields + confidence]
+        N3[Psychosocial Assessment<br/>6 fields + confidence]
         N4[Risk Flags + Severity]
         N5[Documentation Boundaries]
         N6[ICD-10 Codes]
