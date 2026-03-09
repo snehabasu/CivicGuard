@@ -4,6 +4,101 @@ CareNotes is an AI-assisted scribe tool for social workers. It turns post-visit 
 
 All AI output is a draft. The clinician reviews, edits, and approves before anything is submitted to Epic.
 
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph UI["User Interface (Next.js 14 — Vercel)"]
+        A[fa:fa-microphone VoiceRecorder\nMediaRecorder API\naudio/webm · audio/mp4]
+        B[fa:fa-list HomePage\nPatient list + search]
+        C[fa:fa-file-alt ReviewPage\nDraft review · edit · approve]
+        D[fa:fa-copy Epic Export\nCopy sections to clipboard]
+    end
+
+    subgraph Auth["Auth Layer"]
+        M[Next.js Middleware\nSupabase session cookie check]
+        L[Login Page\nEmail + password]
+    end
+
+    subgraph API["API Routes (Next.js — same Vercel deployment)"]
+        T["/api/transcribe\nGroq Whisper"]
+        P["/api/process\nClaude claude-sonnet-4-6"]
+        MASK[PII Masking\nSSN · phone · email · dates\nlegal status signals]
+    end
+
+    subgraph AI["AI Services"]
+        GROQ["Groq\nWhisper (medical transcription)"]
+        CLAUDE["Anthropic Claude\nclaude-sonnet-4-6\nStructured JSON output"]
+    end
+
+    subgraph Storage["Persistence"]
+        LS[(localStorage\nlocal cache)]
+        SB[(Supabase Postgres\ncase_notes table\ndata: jsonb · RLS)]
+        SBAUTH[Supabase Auth\nJWT · email+password]
+    end
+
+    subgraph Output["Structured Case Note (FullCaseNote)"]
+        N1[Narrative Summary]
+        N2[SOAP Note]
+        N3[Psychosocial Assessment\n6 fields + confidence]
+        N4[Risk Flags + Severity]
+        N5[Documentation Boundaries]
+        N6[ICD-10 Codes]
+        N7[Follow-up Questions]
+    end
+
+    %% Auth flow
+    M -->|no session| L
+    L -->|signInWithPassword| SBAUTH
+    SBAUTH -->|session cookie| M
+
+    %% Recording → transcription
+    A -->|audio blob POST| T
+    T -->|audio stream| GROQ
+    GROQ -->|raw transcript| MASK
+    MASK -->|masked transcript| P
+
+    %% AI processing
+    P -->|system prompt + transcript| CLAUDE
+    CLAUDE -->|structured JSON| P
+
+    %% Storage writes
+    P -->|FullCaseNote draft| LS
+    P -->|upsert is_draft=true| SB
+
+    %% Review + approval
+    P -->|navigate /review| C
+    C -->|reads| LS
+    C -->|onApprove upsert is_draft=false| SB
+    C --> D
+
+    %% Sync on load
+    B -->|pullNotesFromSupabase| SB
+    SB -->|saveNotesBatch| LS
+    LS -->|useSyncExternalStore| B
+
+    %% Note output sections
+    CLAUDE -.->|returns| N1 & N2 & N3 & N4 & N5 & N6 & N7
+
+    classDef ai fill:#e8f4fd,stroke:#2980b9,color:#1a1a2e
+    classDef storage fill:#eafaf1,stroke:#27ae60,color:#1a1a2e
+    classDef ui fill:#fef9e7,stroke:#f39c12,color:#1a1a2e
+    classDef api fill:#fdf2f8,stroke:#8e44ad,color:#1a1a2e
+    class GROQ,CLAUDE ai
+    class LS,SB,SBAUTH storage
+    class A,B,C,D ui
+    class T,P,MASK api
+```
+
+**Data flow summary:**
+1. Clinician speaks a post-visit reflection → browser captures audio via MediaRecorder
+2. Audio POSTs to `/api/transcribe` → Groq Whisper returns a clinical transcript
+3. PII masking strips SSNs, phone numbers, legal-status terms server-side
+4. Masked transcript POSTs to `/api/process` → Claude returns a structured `FullCaseNote` JSON with 7 sections
+5. Draft note saves to localStorage (instant) and Supabase (persistent, RLS-protected)
+6. Clinician reviews, edits, enters name → approval upserts `is_draft=false` to Supabase
+7. On next load, `pullNotesFromSupabase` hydrates localStorage so notes survive across devices
+
 ## Docs
 
 - `docs/PRODUCT_BRIEF.md` — product framing, user research, and scope
