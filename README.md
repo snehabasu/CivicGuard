@@ -21,13 +21,13 @@ flowchart TD
     end
 
     subgraph API["API Routes (Next.js — same Vercel deployment)"]
-        T["/api/transcribe\nGroq Whisper"]
+        T["/api/transcribe\nDeepgram nova-2-medical"]
         P["/api/process\nClaude claude-sonnet-4-6"]
         MASK[PII Masking\nSSN · phone · email · dates\nlegal status signals]
     end
 
     subgraph AI["AI Services"]
-        GROQ["Groq\nWhisper (medical transcription)"]
+        DEEPGRAM["Deepgram\nnova-2-medical (clinical transcription)"]
         CLAUDE["Anthropic Claude\nclaude-sonnet-4-6\nStructured JSON output"]
     end
 
@@ -54,8 +54,8 @@ flowchart TD
 
     %% Recording → transcription
     A -->|audio blob POST| T
-    T -->|audio stream| GROQ
-    GROQ -->|raw transcript| MASK
+    T -->|audio stream| DEEPGRAM
+    DEEPGRAM -->|raw transcript| MASK
     MASK -->|masked transcript| P
 
     %% AI processing
@@ -84,7 +84,7 @@ flowchart TD
     classDef storage fill:#eafaf1,stroke:#27ae60,color:#1a1a2e
     classDef ui fill:#fef9e7,stroke:#f39c12,color:#1a1a2e
     classDef api fill:#fdf2f8,stroke:#8e44ad,color:#1a1a2e
-    class GROQ,CLAUDE ai
+    class DEEPGRAM,CLAUDE ai
     class LS,SB,SBAUTH storage
     class A,B,C,D ui
     class T,P,MASK api
@@ -92,7 +92,7 @@ flowchart TD
 
 **Data flow summary:**
 1. Clinician speaks a post-visit reflection → browser captures audio via MediaRecorder
-2. Audio POSTs to `/api/transcribe` → Groq Whisper returns a clinical transcript
+2. Audio POSTs to `/api/transcribe` → Deepgram `nova-2-medical` returns a clinical transcript
 3. PII masking strips SSNs, phone numbers, legal-status terms server-side
 4. Masked transcript POSTs to `/api/process` → Claude returns a structured `FullCaseNote` JSON with 7 sections
 5. Draft note saves to localStorage (instant) and Supabase (persistent, RLS-protected)
