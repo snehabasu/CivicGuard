@@ -7,4 +7,5 @@ build
 coverage
 *.log
 .next
+*.tsbuildinfo
 deepgram-sdk-5.0.0.tgz
