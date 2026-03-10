@@ -4,91 +4,6 @@ CareNotes is an AI-assisted scribe tool for social workers. It turns post-visit 
 
 All AI output is a draft. The clinician reviews, edits, and approves before anything is submitted to Epic.
 
-## Architecture
-
-```mermaid
-flowchart TD
-    subgraph UI["User Interface (Next.js 14 — Vercel)"]
-        A[VoiceRecorder<br/>MediaRecorder API<br/>audio/webm · audio/mp4]
-        B[HomePage<br/>Patient list + search]
-        C[ReviewPage<br/>Draft review · edit · approve]
-        D[Epic Export<br/>Copy sections to clipboard]
-    end
-
-    subgraph Auth["Auth Layer"]
-        M[Next.js Middleware\nSupabase session cookie check]
-        L[Login Page\nEmail + password]
-    end
-
-    subgraph API["API Routes (Next.js — same Vercel deployment)"]
-        T[/api/transcribe<br/>Deepgram nova-2-medical]
-        P[/api/process<br/>Claude claude-sonnet-4-6]
-        MASK[PII Masking<br/>SSN · phone · email · dates<br/>legal status signals]
-    end
-
-    subgraph AI["AI Services"]
-        DEEPGRAM["Deepgram<br/>nova-2-medical (clinical transcription)"]
-        CLAUDE["Anthropic Claude<br/>claude-sonnet-4-6<br/>Structured JSON output"]
-    end
-
-    subgraph Storage["Persistence"]
-        LS[(localStorage<br/>local cache)]
-        SB[(Supabase Postgres<br/>case_notes table<br/>data: jsonb · RLS)]
-        SBAUTH[Supabase Auth\nJWT · email+password]
-    end
-
-    subgraph Output["Structured Case Note (FullCaseNote)"]
-        N1[Narrative Summary]
-        N2[SOAP Note]
-        N3[Psychosocial Assessment<br/>6 fields + confidence]
-        N4[Risk Flags + Severity]
-        N5[Documentation Boundaries]
-        N6[ICD-10 Codes]
-        N7[Follow-up Questions]
-    end
-
-    %% Auth flow
-    M -->|no session| L
-    L -->|signInWithPassword| SBAUTH
-    SBAUTH -->|session cookie| M
-
-    %% Recording → transcription
-    A -->|audio blob POST| T
-    T -->|audio stream| DEEPGRAM
-    DEEPGRAM -->|raw transcript| MASK
-    MASK -->|masked transcript| P
-
-    %% AI processing
-    P -->|system prompt + transcript| CLAUDE
-    CLAUDE -->|structured JSON| P
-
-    %% Storage writes
-    P -->|FullCaseNote draft| LS
-    P -->|upsert is_draft=true| SB
-
-    %% Review + approval
-    P -->|navigate /review| C
-    C -->|reads| LS
-    C -->|onApprove upsert is_draft=false| SB
-    C --> D
-
-    %% Sync on load
-    B -->|pullNotesFromSupabase| SB
-    SB -->|saveNotesBatch| LS
-    LS -->|useSyncExternalStore| B
-
-    %% Note output sections
-    CLAUDE -.->|returns| N1 & N2 & N3 & N4 & N5 & N6 & N7
-
-    classDef ai fill:#e8f4fd,stroke:#2980b9,color:#1a1a2e
-    classDef storage fill:#eafaf1,stroke:#27ae60,color:#1a1a2e
-    classDef ui fill:#fef9e7,stroke:#f39c12,color:#1a1a2e
-    classDef api fill:#fdf2f8,stroke:#8e44ad,color:#1a1a2e
-    class DEEPGRAM,CLAUDE ai
-    class LS,SB,SBAUTH storage
-    class A,B,C,D ui
-    class T,P,MASK api
-```
 
 **Data flow summary:**
 1. Clinician speaks a post-visit reflection → browser captures audio via MediaRecorder
@@ -99,13 +14,10 @@ flowchart TD
 6. Clinician reviews, edits, enters name → approval upserts `is_draft=false` to Supabase
 7. On next load, `pullNotesFromSupabase` hydrates localStorage so notes survive across devices
 
-## Docs
-
-- `docs/PRODUCT_BRIEF.md` — product framing, user research, and scope
-- `docs/ARCHITECTURE.md` — system design and data flow
-- `docs/COMPLIANCE.md` — HIPAA-first constraints and guardrails
 
 ## Setup
+**Production** - Check out the website - https://civic-guard-web.vercel.app/
+
 
 **Prerequisites:** Node.js 18+, an Anthropic API key, a Deepgram API key.
 
