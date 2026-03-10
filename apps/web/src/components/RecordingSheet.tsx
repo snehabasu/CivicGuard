@@ -352,9 +352,6 @@ export function RecordingSheet({
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-dark/40 pointer-events-none"
               />
             </div>
-            {deviceStatus && (
-              <p className="mt-1.5 text-xs text-red-600">{deviceStatus}</p>
-            )}
           </div>
 
           {/* Mic button */}
