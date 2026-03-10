@@ -65,6 +65,7 @@ export function RecordingSheet({
     [],
   );
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
+  const [deviceStatus, setDeviceStatus] = useState<string>("");
 
   // Patient search
   const [patientQuery, setPatientQuery] = useState("");
@@ -95,21 +96,53 @@ export function RecordingSheet({
   useEffect(() => {
     if (!open) return;
     async function loadDevices() {
+      setDeviceStatus("");
       try {
-        // Need a brief getUserMedia call to get labeled devices
-        const tempStream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-        });
-        tempStream.getTracks().forEach((t) => t.stop());
+        if (!navigator.mediaDevices?.enumerateDevices) {
+          setAvailableDevices([]);
+          setDeviceStatus("Browser does not support microphone enumeration.");
+          return;
+        }
 
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const audioInputs = devices.filter((d) => d.kind === "audioinput");
+        // Some browsers list audioinput even before permission, others do not.
+        let devices = await navigator.mediaDevices.enumerateDevices();
+        let audioInputs = devices.filter((d) => d.kind === "audioinput");
+
+        // If we cannot list inputs yet, attempt to request mic permission once.
+        if (audioInputs.length === 0) {
+          const tempStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+          tempStream.getTracks().forEach((t) => t.stop());
+          devices = await navigator.mediaDevices.enumerateDevices();
+          audioInputs = devices.filter((d) => d.kind === "audioinput");
+        }
+
         setAvailableDevices(audioInputs);
         if (audioInputs.length > 0 && !selectedDeviceId) {
           setSelectedDeviceId(audioInputs[0].deviceId);
         }
-      } catch {
-        // Permission denied — we'll still show the sheet
+
+        if (audioInputs.length === 0) {
+          setDeviceStatus("No microphone devices detected by the browser.");
+        }
+      } catch (err) {
+        setAvailableDevices([]);
+        const name =
+          err instanceof DOMException ? err.name : "UnknownError";
+        if (name === "NotAllowedError") {
+          setDeviceStatus("Microphone permission denied for this site.");
+        } else if (name === "NotFoundError") {
+          setDeviceStatus("No microphone hardware found.");
+        } else if (name === "NotReadableError") {
+          setDeviceStatus("Microphone is busy or unavailable.");
+        } else if (name === "SecurityError") {
+          setDeviceStatus(
+            "Microphone blocked by browser security or embedding policy.",
+          );
+        } else {
+          setDeviceStatus(`Could not load microphones (${name}).`);
+        }
       }
     }
     loadDevices();
@@ -146,10 +179,25 @@ export function RecordingSheet({
         mediaStream = await navigator.mediaDevices.getUserMedia({
           audio: audioConstraints,
         });
-      } catch {
-        setError(
-          "Microphone access denied. Please allow microphone permission.",
-        );
+      } catch (err) {
+        const name = err instanceof DOMException ? err.name : "UnknownError";
+        if (name === "NotAllowedError") {
+          setError(
+            "Microphone access denied. Please allow microphone permission.",
+          );
+        } else if (name === "NotFoundError") {
+          setError("No microphone hardware found.");
+        } else if (name === "NotReadableError") {
+          setError("Microphone is in use by another app or unavailable.");
+        } else if (name === "OverconstrainedError") {
+          setError("Selected microphone is unavailable. Please choose another.");
+        } else if (name === "SecurityError") {
+          setError(
+            "Microphone blocked by browser security settings or embed policy.",
+          );
+        } else {
+          setError("Unable to access microphone.");
+        }
         setState("error");
         return;
       }
@@ -220,7 +268,10 @@ export function RecordingSheet({
         method: "POST",
         body: form,
       });
-      if (!res.ok) throw new Error(`Transcription failed: HTTP ${res.status}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? "Transcription failed. Please try again.");
+      }
       const data = await res.json();
       setState("done");
       const patientName = selectedPatient || patientQuery.trim();
@@ -286,7 +337,9 @@ export function RecordingSheet({
                 className="w-full appearance-none bg-surface-card rounded-lg px-4 py-2.5 pr-10 text-sm text-teal-dark outline-none focus:ring-2 focus:ring-teal/30 disabled:opacity-50"
               >
                 {availableDevices.length === 0 && (
-                  <option value="">No microphones found</option>
+                  <option value="">
+                    {deviceStatus || "No microphones found"}
+                  </option>
                 )}
                 {availableDevices.map((d) => (
                   <option key={d.deviceId} value={d.deviceId}>
@@ -299,6 +352,9 @@ export function RecordingSheet({
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-dark/40 pointer-events-none"
               />
             </div>
+            {deviceStatus && (
+              <p className="mt-1.5 text-xs text-red-600">{deviceStatus}</p>
+            )}
           </div>
 
           {/* Mic button */}
