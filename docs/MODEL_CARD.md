@@ -1,13 +1,13 @@
-# CivicGuard — Model Card
+# Care Notes— Model Card
 
 ## Model Overview
 
-CivicGuard uses two AI models in sequence to convert post-visit voice reflections into structured clinical case notes for social workers.
+CareNotes uses two AI models in sequence to convert post-visit voice reflections into structured clinical case notes for social workers.
 
-| Component | Model | Type | Provider |
-|-----------|-------|------|----------|
-| Speech-to-Text | Deepgram Nova-2-Medical | Automatic speech recognition (ASR) | Deepgram |
-| Documentation Generation | Claude Sonnet 4.6 | Large language model (LLM) | Anthropic |
+| Component                | Model                   | Type                               | Provider  |
+| ------------------------ | ----------------------- | ---------------------------------- | --------- |
+| Speech-to-Text           | Deepgram Nova-2-Medical | Automatic speech recognition (ASR) | Deepgram  |
+| Documentation Generation | Claude Sonnet 4.6       | Large language model (LLM)         | Anthropic |
 
 **Deepgram Nova-2-Medical** is a medical-domain ASR model that transcribes clinician audio into text. It is optimized for clinical speech, handling medical abbreviations and terminology.
 
@@ -15,7 +15,7 @@ CivicGuard uses two AI models in sequence to convert post-visit voice reflection
 
 ## Intended Use
 
-CivicGuard is designed for **licensed social workers** performing post-visit documentation. The system's role is assistive — it drafts clinical notes from spoken reflections so clinicians spend less time on paperwork.
+CareNotes is designed for **licensed social workers** performing post-visit documentation. The system's role is assistive — it drafts clinical notes from spoken reflections so clinicians spend less time on paperwork.
 
 - **Deepgram** transcribes the clinician's spoken reflection into text after a client visit.
 - **Claude** takes the masked transcript and generates a structured draft case note covering seven clinical sections.
@@ -31,7 +31,7 @@ All AI output is labeled as a **DRAFT** and requires clinician review, editing, 
 
 ### Training Data
 
-Neither model was fine-tuned for this application. Deepgram Nova-2-Medical was pre-trained by Deepgram on medical speech corpora. Claude Sonnet 4.6 was pre-trained by Anthropic on a broad text corpus. CivicGuard relies on prompt engineering (an 83-line system prompt) to shape Claude's output into the required clinical format and enforce documentation rules.
+Neither model was fine-tuned for this application. Deepgram Nova-2-Medical was pre-trained by Deepgram on medical speech corpora. Claude Sonnet 4.6 was pre-trained by Anthropic on a broad text corpus. CareNotes relies on prompt engineering (an 83-line system prompt) to shape Claude's output into the required clinical format and enforce documentation rules.
 
 ### Data Limitations
 
@@ -43,15 +43,15 @@ Neither model was fine-tuned for this application. Deepgram Nova-2-Medical was p
 
 ### Metrics Considered
 
-Given that CivicGuard produces clinical documentation drafts, we focus on the following evaluation dimensions:
+Given that CareNotes produces clinical documentation drafts, we focus on the following evaluation dimensions:
 
-| Metric | Why It Matters |
-|--------|----------------|
-| **Transcript accuracy** (Word Error Rate) | Transcription errors propagate to every downstream section. Medical terminology accuracy is critical. |
-| **Structured output validity** | Claude must return valid JSON matching the required schema every time. Parse failures block the entire workflow. |
-| **Clinical fidelity** | Generated notes must reflect only what was said in the transcript — no hallucinated details. Fields with insufficient evidence must report `insufficient_data`. |
-| **PII / legal-status leak rate** | Sensitive content must never reach the client. The system uses both pre-processing masking and post-processing leak detection. |
-| **Clinician edit distance** | How much a clinician changes the draft before approval — lower edits indicate higher draft quality. |
+| Metric                                    | Why It Matters                                                                                                                                                  |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Transcript accuracy** (Word Error Rate) | Transcription errors propagate to every downstream section. Medical terminology accuracy is critical.                                                           |
+| **Structured output validity**            | Claude must return valid JSON matching the required schema every time. Parse failures block the entire workflow.                                                |
+| **Clinical fidelity**                     | Generated notes must reflect only what was said in the transcript — no hallucinated details. Fields with insufficient evidence must report `insufficient_data`. |
+| **PII / legal-status leak rate**          | Sensitive content must never reach the client. The system uses both pre-processing masking and post-processing leak detection.                                  |
+| **Clinician edit distance**               | How much a clinician changes the draft before approval — lower edits indicate higher draft quality.                                                             |
 
 ### Current State
 
@@ -92,5 +92,6 @@ We added **server-side legal-status leak detection** as a post-processing valida
 
 1. **Clinician feedback loop**: Collect edit-distance data from clinician reviews to identify which sections need the most correction, then refine the system prompt for those sections.
 2. **Retrieval-augmented prompting**: Provide Claude with anonymized examples of approved case notes as few-shot references to improve output quality and consistency.
-3. **Streaming generation**: Switch from single-call to streaming output so clinicians see sections populate in real time, reducing perceived latency.
-4. **Multilingual support**: Extend transcription and documentation to Spanish, given the demographics served by many social work agencies.
+3. **Multilingual support**: Extend transcription and documentation to Spanish, given the demographics served by many social work agencies.
+4. **Epic integration**: Integrate with a clinical decision support system to automate the review and approval process.
+5. **HIPAA compliance**: Ensure that all sensitive content is masked and leak-checked to meet HIPAA regulations. The models will be deployed in a HIPAA-compliant environment on private cloud infrastructure.
