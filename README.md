@@ -18,6 +18,8 @@ All AI output is a draft. The clinician reviews, edits, and approves before anyt
 ## Setup
 **Production** - Check out the website - https://civic-guard-web.vercel.app/
 
+Demo credentials: `demo@user.com` / `pass12345`
+
 
 **Prerequisites:** Node.js 18+, an Anthropic API key, a Deepgram API key.
 
